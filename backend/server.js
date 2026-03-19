@@ -107,6 +107,41 @@ async function ensureTables(db) {
   console.log("✅ Tables ready");
 }
 
+// ---- Health Check Routes ----
+
+  // Basic health (for ALB target group)
+  app.get('/health', (req, res) => {
+    return res.status(200).json({
+      status: 'ok',
+      service: 'backend',
+      uptime: process.uptime()
+    });
+  });
+
+  // DB health (for debugging only)
+  app.get('/health/db', async (req, res) => {
+    try {
+      const [rows] = await db.query('SELECT 1 as db_up');
+
+      return res.status(200).json({
+        status: 'ok',
+        database: 'connected',
+        host: process.env.host,
+        database_name: process.env.database,
+        result: rows[0]
+      });
+
+    } catch (error) {
+      console.error('DB health check failed:', error.message);
+
+      return res.status(500).json({
+        status: 'error',
+        database: 'down',
+        error: error.message
+      });
+    }
+  });
+
 /* ------------------ ROUTES ------------------ */
 
 app.get("/", async (req, res) => {
